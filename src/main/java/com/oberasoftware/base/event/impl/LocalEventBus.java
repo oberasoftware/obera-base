@@ -91,11 +91,11 @@ public class LocalEventBus implements EventBus {
     }
 
     private String executeHandler(HandlerEntry h, Object event, Set<String> handlersExecuted, Object... args) {
-        LOG.debug("Executing handler: {} for event: {}", h, event);
+        LOG.trace("Executing handler: {} for event: {}", h, event);
         String handlerClass = h.getListenerInstance().getClass().getName();
         String handlerId = handlerClass + "." + h.getEventMethod().getName();
         if(!isFiltered(h, event)) {
-            LOG.debug("Event is not filtered: {}", event);
+            LOG.trace("Event is not filtered: {}", event);
             if (!handlersExecuted.contains(handlerId)) {
 
                 Optional<?> result = h.executeHandler(event, args);
@@ -105,14 +105,14 @@ public class LocalEventBus implements EventBus {
                 }
             }
         } else {
-            LOG.debug("Event: {} is filtered", event);
+            LOG.trace("Event: {} is filtered", event);
         }
         return handlerId;
     }
 
     private boolean isFiltered(HandlerEntry handlerEntry, Object event) {
         return activeFilters.stream().anyMatch(f -> {
-            LOG.debug("Filtering event: {}", event);
+            LOG.trace("Checking filters for event: {}", event);
             return f.isFiltered(event, handlerEntry);
         });
     }

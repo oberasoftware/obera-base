@@ -34,7 +34,7 @@ public class HandlerEntryImpl implements HandlerEntry {
             } else {
                 Object[] eventArguments = ObjectArrays.concat(event, args);
                 if(argumentLength == eventArguments.length) {
-                    LOG.debug("Calling method: {} with args: {}", eventMethod, eventArguments);
+                    LOG.debug("Calling method: {} with args: {}", eventMethod.getName(), eventArguments);
                     result = eventMethod.invoke(listenerInstance, eventArguments);
                 } else {
                     LOG.debug("Cannot executed event method: {} not enough arguments: {}", event, eventArguments);
@@ -61,7 +61,7 @@ public class HandlerEntryImpl implements HandlerEntry {
     @Override
     public String toString() {
         return "HandlerEntryImpl{" +
-                "eventMethod=" + eventMethod +
+                "eventMethod=" + eventMethod.getDeclaringClass() + "." + eventMethod.getName() +
                 ", listenerInstance=" + listenerInstance +
                 '}';
     }
