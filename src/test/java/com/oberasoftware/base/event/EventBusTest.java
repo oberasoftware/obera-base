@@ -82,8 +82,8 @@ public class EventBusTest {
     public class TestEventHandler implements EventHandler {
 
         private final CountDownLatch latch;
-        private int id = -1;
-        private int value = -1;
+        private volatile int id = -1;
+        private volatile int value = -1;
 
         public TestEventHandler(CountDownLatch latch) {
             this.latch = latch;
