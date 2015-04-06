@@ -10,7 +10,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static org.hamcrest.CoreMatchers.is;
@@ -50,8 +49,11 @@ public class EventBusTest {
         bus.registerHandler(handler);
         bus.registerFilter((event, handler1) -> {
             TestAnnotation annotation = handler1.getEventMethod().getAnnotation(TestAnnotation.class);
-            LOG.debug("Minimum ID is: {}", annotation.minId());
-            return event instanceof TestEvent && ((TestEvent) event).getId() < annotation.minId();
+            if(annotation != null) {
+                LOG.debug("Minimum ID is: {}", annotation.minId());
+                return event instanceof TestEvent && ((TestEvent) event).getId() < annotation.minId();
+            }
+            return false;
         });
 
         bus.publish(new TestEvent(1));
@@ -61,7 +63,7 @@ public class EventBusTest {
 
 
         bus.publish(new TestEvent(TEST_ID));
-        awaitUninterruptibly(latch, 5, TimeUnit.SECONDS);
+        awaitUninterruptibly(latch, 1, TimeUnit.SECONDS);
         assertThat(handler.getId(), is(TEST_ID));
     }
 
@@ -83,40 +85,34 @@ public class EventBusTest {
     public class TestEventHandler implements EventHandler {
 
         private final CountDownLatch latch;
-        private AtomicInteger id = new AtomicInteger(-1);
-        private AtomicInteger value = new AtomicInteger(-1);
+        private volatile int id = -1;
+        private volatile int value = -1;
 
         public TestEventHandler(CountDownLatch latch) {
             this.latch = latch;
         }
 
         public int getId() {
-            return id.get();
+            return id;
         }
 
         public int getValue() {
-            return value.get();
+            return value;
         }
 
         @EventSubscribe
         @TestAnnotation(minId = 10)
         public void handle(TestEvent event) {
             LOG.debug("Received event with id: {}", event.getId());
-            try {
-                this.id.set(event.getId());
-            } finally {
-                latch.countDown();
-            }
+            this.id = event.getId();
+            latch.countDown();
         }
 
         @EventSubscribe
         public void handleWithMoreParameters(TestEvent event, int value) {
             LOG.debug("Received event: {} with additional parameter: {}", event, value);
-            try {
-                this.value.set(value);
-            } finally {
-                latch.countDown();
-            }
+            this.value = value;
+            latch.countDown();
         }
     }
 
