@@ -60,7 +60,7 @@ public class EventBusTest {
 
 
         bus.publish(new TestEvent(TEST_ID));
-        awaitUninterruptibly(latch, 1, TimeUnit.SECONDS);
+        awaitUninterruptibly(latch, 5, TimeUnit.SECONDS);
         assertThat(handler.getId(), is(TEST_ID));
     }
 
