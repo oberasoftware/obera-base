@@ -10,6 +10,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static org.hamcrest.CoreMatchers.is;
@@ -82,34 +83,40 @@ public class EventBusTest {
     public class TestEventHandler implements EventHandler {
 
         private final CountDownLatch latch;
-        private volatile int id = -1;
-        private volatile int value = -1;
+        private AtomicInteger id = new AtomicInteger(-1);
+        private AtomicInteger value = new AtomicInteger(-1);
 
         public TestEventHandler(CountDownLatch latch) {
             this.latch = latch;
         }
 
         public int getId() {
-            return id;
+            return id.get();
         }
 
         public int getValue() {
-            return value;
+            return value.get();
         }
 
         @EventSubscribe
         @TestAnnotation(minId = 10)
         public void handle(TestEvent event) {
             LOG.debug("Received event with id: {}", event.getId());
-            this.id = event.getId();
-            latch.countDown();
+            try {
+                this.id.set(event.getId());
+            } finally {
+                latch.countDown();
+            }
         }
 
         @EventSubscribe
         public void handleWithMoreParameters(TestEvent event, int value) {
             LOG.debug("Received event: {} with additional parameter: {}", event, value);
-            this.value = value;
-            latch.countDown();
+            try {
+                this.value.set(value);
+            } finally {
+                latch.countDown();
+            }
         }
     }
 
