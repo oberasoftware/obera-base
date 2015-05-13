@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -98,16 +99,31 @@ public class LocalEventBus implements EventBus {
             LOG.trace("Event is not filtered: {}", event);
             if (!handlersExecuted.contains(handlerId)) {
 
-                Optional<?> result = h.executeHandler(event, args);
-                if (result.isPresent() && result.get() instanceof Event) {
-                    LOG.debug("Handler produced a result of type Event, sending to bus: {}", result.get());
-                    publish((Event) result.get());
-                }
+                handleResult(h.executeHandler(event, args));
             }
         } else {
             LOG.trace("Event: {} is filtered", event);
         }
         return handlerId;
+    }
+
+    private void handleResult(Optional<?> optionalResult) {
+        if (optionalResult.isPresent()) {
+            Object result = optionalResult.get();
+
+            if(result instanceof Collection<?>) {
+                ((Collection<?>)result).forEach(this::publishResult);
+            } else {
+                publishResult(result);
+            }
+        }
+    }
+
+    private void publishResult(Object result) {
+        if(result instanceof Event) {
+            LOG.debug("Handler produced a result of type Event, sending to bus: {}", result);
+            publish((Event) result);
+        }
     }
 
     private boolean isFiltered(HandlerEntry handlerEntry, Object event) {

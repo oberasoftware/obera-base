@@ -8,8 +8,11 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static org.hamcrest.CoreMatchers.is;
@@ -49,7 +52,7 @@ public class EventBusTest {
         bus.registerHandler(handler);
         bus.registerFilter((event, handler1) -> {
             TestAnnotation annotation = handler1.getEventMethod().getAnnotation(TestAnnotation.class);
-            if(annotation != null) {
+            if (annotation != null) {
                 LOG.debug("Minimum ID is: {}", annotation.minId());
                 return event instanceof TestEvent && ((TestEvent) event).getId() < annotation.minId();
             }
@@ -82,11 +85,43 @@ public class EventBusTest {
         assertThat(handler.getValue(), is(TEST_VALUE));
     }
 
+    @Test
+    public void testProduceEvent() {
+        EventBus bus = new LocalEventBus();
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        TestEventHandler handler = new TestEventHandler(latch);
+        bus.registerHandler(handler);
+
+        bus.publish(new AnotherEvent(TEST_ID));
+        awaitUninterruptibly(latch, 1, TimeUnit.SECONDS);
+
+        assertThat(handler.getId(), is(TEST_ID));
+        assertThat(handler.getCounter(), is(1));
+    }
+
+    @Test
+    public void testProducesCollection() {
+        EventBus bus = new LocalEventBus();
+
+        final CountDownLatch latch = new CountDownLatch(11);
+        TestEventHandler handler = new TestEventHandler(latch);
+        bus.registerHandler(handler);
+
+        bus.publish(new AnotherEvent(TEST_ID), 10);
+        awaitUninterruptibly(latch, 2, TimeUnit.SECONDS);
+
+
+
+        assertThat(handler.getCounter(), is(11));
+    }
+
     public class TestEventHandler implements EventHandler {
 
         private final CountDownLatch latch;
         private volatile int id = -1;
         private volatile int value = -1;
+        private final AtomicInteger counter = new AtomicInteger(0);
 
         public TestEventHandler(CountDownLatch latch) {
             this.latch = latch;
@@ -100,11 +135,16 @@ public class EventBusTest {
             return value;
         }
 
+        public int getCounter() {
+            return counter.get();
+        }
+
         @EventSubscribe
         @TestAnnotation(minId = 10)
         public void handle(TestEvent event) {
             LOG.debug("Received event with id: {}", event.getId());
             this.id = event.getId();
+            this.counter.incrementAndGet();
             latch.countDown();
         }
 
@@ -113,6 +153,22 @@ public class EventBusTest {
             LOG.debug("Received event: {} with additional parameter: {}", event, value);
             this.value = value;
             latch.countDown();
+        }
+
+        @EventSubscribe
+        public Event producesEvent(AnotherEvent event) {
+            LOG.debug("Received another event: {} creating test event", event);
+            return new TestEvent(event.getId());
+        }
+
+        @EventSubscribe
+        public List<Event> produceCollectionEvents(AnotherEvent event, int amount) {
+            LOG.debug("Received another event: {} creating collection of test events with amount: {}", event, amount);
+            List<Event> events = new ArrayList<>();
+            for(int i=0; i<amount; i++) {
+                events.add(new TestEvent(event.getId() + i));
+            }
+            return events;
         }
     }
 
@@ -130,6 +186,25 @@ public class EventBusTest {
         @Override
         public String toString() {
             return "TestEvent{" +
+                    "id=" + id +
+                    '}';
+        }
+    }
+
+    public class AnotherEvent implements Event {
+        private final int id;
+
+        public AnotherEvent(int id) {
+            this.id = id;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        @Override
+        public String toString() {
+            return "AnotherEvent{" +
                     "id=" + id +
                     '}';
         }
