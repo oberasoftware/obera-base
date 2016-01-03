@@ -2,25 +2,14 @@ package com.oberasoftware.base.event.impl;
 
 import com.google.common.collect.Lists;
 import com.google.common.reflect.TypeToken;
-import com.oberasoftware.base.event.Event;
-import com.oberasoftware.base.event.EventBus;
-import com.oberasoftware.base.event.EventFilter;
-import com.oberasoftware.base.event.EventHandler;
-import com.oberasoftware.base.event.EventSubscribe;
-import com.oberasoftware.base.event.HandlerEntry;
+import com.oberasoftware.base.event.*;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,7 +34,11 @@ public class LocalEventBus implements EventBus {
     @Autowired(required = false)
     private List<EventFilter> eventFilters;
 
-    private ExecutorService executorService = Executors.newCachedThreadPool();
+    private ExecutorService executorService = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r);
+        t.setDaemon(true);
+        return t;
+    });
 
     @PostConstruct
     public void loadListeners() {
