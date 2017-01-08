@@ -10,9 +10,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 import static java.util.Arrays.stream;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -55,7 +53,23 @@ public class LocalEventBus implements EventBus {
 
     @Override
     public void publish(Event event, Object... args) {
-        executorService.submit(() -> {
+        execute(event, args);
+    }
+
+    @Override
+    public boolean publishSync(Event event, TimeUnit unit, long time, Object... args) {
+        Future<?> future = execute(event, args);
+        try {
+            future.get(time, unit);
+            return true;
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            LOG.warn("Interrupted waiting for event response: {}", e);
+            return false;
+        }
+    }
+
+    private Future<?> execute(Event event, Object... args) {
+        return executorService.submit(() -> {
             LOG.debug("Firing off an Async event: {}", event);
             notifyEventListeners(event, args);
         });
