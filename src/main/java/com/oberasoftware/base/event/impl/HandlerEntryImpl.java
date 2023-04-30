@@ -15,8 +15,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class HandlerEntryImpl implements HandlerEntry {
     private static final Logger LOG = getLogger(HandlerEntryImpl.class);
 
-    private Method eventMethod;
-    private Object listenerInstance;
+    private final Method eventMethod;
+    private final Object listenerInstance;
 
     public HandlerEntryImpl(Object listenerInstance, Method eventMethod) {
         this.eventMethod = eventMethod;
@@ -40,7 +40,12 @@ public class HandlerEntryImpl implements HandlerEntry {
                     LOG.debug("Cannot executed event method: {} not enough arguments: {}", event, eventArguments);
                 }
             }
-            return Optional.ofNullable(result);
+
+            if(result instanceof Optional<?>) {
+                return (Optional<?>)result;
+            } else {
+                return Optional.ofNullable(result);
+            }
         } catch (Throwable e) {
             LOG.error("Unable to execute listener instance", e);
         }

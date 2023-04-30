@@ -10,13 +10,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -54,7 +55,7 @@ public class EventBusTest {
             TestAnnotation annotation = handler1.getEventMethod().getAnnotation(TestAnnotation.class);
             if (annotation != null) {
                 LOG.debug("Minimum ID is: {}", annotation.minId());
-                return event instanceof TestEvent && ((TestEvent) event).getId() < annotation.minId();
+                return event instanceof TestEvent && ((TestEvent) event).id() < annotation.minId();
             }
             return false;
         });
@@ -116,7 +117,7 @@ public class EventBusTest {
         assertThat(handler.getCounter(), is(11));
     }
 
-    public class TestEventHandler implements EventHandler {
+    public static class TestEventHandler implements EventHandler {
 
         private final CountDownLatch latch;
         private volatile int id = -1;
@@ -142,8 +143,8 @@ public class EventBusTest {
         @EventSubscribe
         @TestAnnotation(minId = 10)
         public void handle(TestEvent event) {
-            LOG.debug("Received event with id: {}", event.getId());
-            this.id = event.getId();
+            LOG.debug("Received event with id: {}", event.id());
+            this.id = event.id();
             this.counter.incrementAndGet();
             latch.countDown();
         }
@@ -156,9 +157,9 @@ public class EventBusTest {
         }
 
         @EventSubscribe
-        public Event producesEvent(AnotherEvent event) {
+        public Optional<Event> producesEvent(AnotherEvent event) {
             LOG.debug("Received another event: {} creating test event", event);
-            return new TestEvent(event.getId());
+            return Optional.of(new TestEvent(event.id()));
         }
 
         @EventSubscribe
@@ -166,23 +167,13 @@ public class EventBusTest {
             LOG.debug("Received another event: {} creating collection of test events with amount: {}", event, amount);
             List<Event> events = new ArrayList<>();
             for(int i=0; i<amount; i++) {
-                events.add(new TestEvent(event.getId() + i));
+                events.add(new TestEvent(event.id() + i));
             }
             return events;
         }
     }
 
-    public class TestEvent implements Event {
-        private final int id;
-
-        private TestEvent(int id) {
-            this.id = id;
-        }
-
-        public int getId() {
-            return id;
-        }
-
+    public record TestEvent(int id) implements Event {
         @Override
         public String toString() {
             return "TestEvent{" +
@@ -191,24 +182,15 @@ public class EventBusTest {
         }
     }
 
-    public class AnotherEvent implements Event {
-        private final int id;
-
-        public AnotherEvent(int id) {
-            this.id = id;
-        }
-
-        public int getId() {
-            return id;
-        }
+    public record AnotherEvent(int id) implements Event {
 
         @Override
-        public String toString() {
-            return "AnotherEvent{" +
-                    "id=" + id +
-                    '}';
+            public String toString() {
+                return "AnotherEvent{" +
+                        "id=" + id +
+                        '}';
+            }
         }
-    }
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.METHOD)

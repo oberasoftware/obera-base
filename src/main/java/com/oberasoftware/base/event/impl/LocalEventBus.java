@@ -22,9 +22,9 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class LocalEventBus implements EventBus {
     private static final Logger LOG = getLogger(LocalEventBus.class);
 
-    private Map<Class<?>, List<HandlerEntryImpl>> handlerEntries = new ConcurrentHashMap<>();
+    private final Map<Class<?>, List<HandlerEntryImpl>> handlerEntries = new ConcurrentHashMap<>();
 
-    private List<EventFilter> activeFilters = Lists.newCopyOnWriteArrayList();
+    private final List<EventFilter> activeFilters = Lists.newCopyOnWriteArrayList();
 
     @Autowired(required = false)
     private List<EventHandler> eventHandlers;
@@ -32,7 +32,7 @@ public class LocalEventBus implements EventBus {
     @Autowired(required = false)
     private List<EventFilter> eventFilters;
 
-    private ExecutorService executorService = Executors.newCachedThreadPool(r -> {
+    private final ExecutorService executorService = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r);
         t.setDaemon(true);
         return t;
@@ -63,7 +63,7 @@ public class LocalEventBus implements EventBus {
             future.get(time, unit);
             return true;
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            LOG.warn("Interrupted waiting for event response: {}", e);
+            LOG.warn("Interrupted waiting for event response: {}", e.getMessage());
             return false;
         }
     }
