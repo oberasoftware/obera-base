@@ -3,11 +3,11 @@ package com.oberasoftware.base.event.impl;
 import com.google.common.collect.Lists;
 import com.google.common.reflect.TypeToken;
 import com.oberasoftware.base.event.*;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.*;
