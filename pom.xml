@@ -12,7 +12,7 @@
 
     <artifactId>obera-base</artifactId>
     <groupId>com.oberasoftware</groupId>
-    <version>3.0-SNAPSHOT</version>
+    <version>3.1-SNAPSHOT</version>
 
     <properties>
         <java.version>21</java.version>
